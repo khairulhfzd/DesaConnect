@@ -19,7 +19,7 @@ const pool = mysql.createPool(dbConfig);
 const initializeDB = async () => {
   try {
     const connection = await pool.getConnection();
-    
+
     if (isProduction) {
       console.log('✅ Connected to AWS RDS');
     } else {
