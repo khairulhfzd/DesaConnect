@@ -29,7 +29,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/health', (req, res) => res.status(200).json({ status: 'OK' }));
 
 // 5. Catch-all Route for SPA
-app.get('*', (req, res) => {
+app.get('/*splat', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
