@@ -1,4 +1,4 @@
-name: Production Deployment (Backend & Frontend)
+name: Build and Deploy to Amazon ECS (Unified Image)
 
 on:
   push:
@@ -6,12 +6,10 @@ on:
       - main
 
 env:
-  AWS_REGION: ap-southeast-1
-  ECR_REPOSITORY_BACKEND: desaconnect-backend
-  ECR_REPOSITORY_FRONTEND: desaconnect-frontend
+  AWS_REGION: ap-southeast-2
+  ECR_REPOSITORY: desaconnect-app
   ECS_SERVICE: pelayanan-publik-service
   ECS_CLUSTER: pelayanan-publik-cluster
-  # Catatan: Pastikan file task-definition.json ada di folder .aws atau sesuaikan jalur di bawah ini
   ECS_TASK_DEFINITION: .aws/task-definition.json 
 
 jobs:
@@ -34,34 +32,26 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
-    # --- BACKEND SECTION ---
-    - name: Build and Push Backend
-      id: build-backend
+    - name: Build and Push Unified Image
+      id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG ./backend
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_BACKEND:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        # Build the unified docker container from root
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    # --- FRONTEND SECTION ---
-    - name: Build and Push Frontend
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG ./frontend
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG
-
-    # --- ECS DEPLOYMENT SECTION (Backend) ---
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
         task-definition: ${{ env.ECS_TASK_DEFINITION }}
         container-name: pelayanan-backend-container
-        image: ${{ steps.build-backend.outputs.image }}
+        image: ${{ steps.build-image.outputs.image }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
