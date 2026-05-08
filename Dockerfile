@@ -4,8 +4,10 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm install
 COPY frontend/ ./
-# Langsung jalankan vite build untuk melewati pengecekan TypeScript yang error
+# Tambahkan env agar tertanam saat build statis React
+ENV VITE_API_URL=https://desaconnect.my.id/api
 RUN npx vite build
+
 
 # --- Stage 2: Final Image (Node.js Express) ---
 FROM node:20-alpine
