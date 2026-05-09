@@ -57,8 +57,13 @@ exports.login = async (req, res) => {
         let isMatch = false;
         try {
             isMatch = await bcrypt.compare(password, user.password);
+            
+            // PERBAIKAN: Kalau bcrypt bilang false (karena formatnya teks biasa), kita cek manual
+            if (!isMatch) {
+                isMatch = (password === user.password);
+            }
         } catch (e) {
-            isMatch = (password === user.password); // fallback to plaintext for dummy data
+            isMatch = (password === user.password); 
         }
 
         if (!isMatch) {
